@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/pre-commit-check.js",
+            "if": "Bash(git *)",
+            "timeout": 180,
+            "statusMessage": "Pre-commit: running lint/build/test…"
+          }
+        ]
+      }
+    ]
+  }
+}

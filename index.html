@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>오늘 뭐 먹지? 🍽️ 랜덤 식단 룰렛</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #273449;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #f59e0b;
+    --accent-2: #fbbf24;
+    --danger: #ef4444;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #1e293b 0%, var(--bg) 60%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 20px; }
+  header h1 { margin: 0; font-size: 30px; letter-spacing: -0.5px; }
+  header p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+  @media (max-width: 780px) { .layout { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid #334155;
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 15px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* 카테고리 칩 */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; justify-content: center; }
+  .chip {
+    border: 1px solid #475569; background: var(--panel-2); color: var(--text);
+    padding: 7px 14px; border-radius: 999px; cursor: pointer; font-size: 14px;
+    transition: all .15s; user-select: none;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip.active { background: var(--accent); color: #1a1206; border-color: var(--accent); font-weight: 700; }
+
+  /* 룰렛 */
+  .wheel-wrap { position: relative; width: 100%; max-width: 420px; margin: 0 auto; aspect-ratio: 1; }
+  #wheel { width: 100%; height: 100%; display: block; }
+  .pointer {
+    position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+    width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent;
+    border-top: 26px solid var(--accent-2); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); z-index: 3;
+  }
+  .spin-btn {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 92px; height: 92px; border-radius: 50%; border: 5px solid #fff;
+    background: var(--accent); color: #1a1206; font-size: 17px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,.45); z-index: 2; transition: transform .1s;
+  }
+  .spin-btn:hover:not(:disabled) { transform: translate(-50%, -50%) scale(1.06); }
+  .spin-btn:active:not(:disabled) { transform: translate(-50%, -50%) scale(.96); }
+  .spin-btn:disabled { background: #64748b; color: #334155; cursor: not-allowed; border-color: #94a3b8; }
+
+  /* 결과 배너 */
+  .result {
+    text-align: center; margin: 18px auto 0; min-height: 58px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .result .label { font-size: 13px; color: var(--muted); }
+  .result .menu { font-size: 34px; font-weight: 800; color: var(--accent-2); }
+  .result .hint { font-size: 13px; color: var(--danger); }
+
+  /* 옵션 */
+  .opt-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+  .opt-row input[type="number"] { width: 56px; padding: 5px; background: var(--panel-2); border: 1px solid #475569; color: var(--text); border-radius: 8px; text-align: center; }
+  .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
+  .switch input { display: none; }
+  .slider { position: absolute; inset: 0; background: #475569; border-radius: 999px; transition: .2s; cursor: pointer; }
+  .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+
+  /* 메뉴 관리 */
+  .add-row { display: flex; gap: 6px; margin-bottom: 12px; }
+  .add-row input[type="text"] { flex: 1; min-width: 0; padding: 8px; background: var(--panel-2); border: 1px solid #475569; color: var(--text); border-radius: 8px; }
+  .add-row select { padding: 8px; background: var(--panel-2); border: 1px solid #475569; color: var(--text); border-radius: 8px; }
+  .btn { padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; background: var(--accent); color: #1a1206; }
+  .btn.ghost { background: transparent; border: 1px solid #475569; color: var(--muted); font-weight: 500; }
+  .btn.ghost:hover { border-color: var(--danger); color: var(--danger); }
+
+  .menu-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; }
+  .menu-list li { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid #2b3a52; font-size: 14px; }
+  .menu-list li:last-child { border-bottom: none; }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 999px; font-weight: 700; color: #1a1206; }
+  .menu-name { flex: 1; }
+  .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; }
+  .del:hover { color: var(--danger); }
+
+  .history-list { list-style: none; margin: 0; padding: 0; }
+  .history-list li { padding: 5px 2px; font-size: 14px; color: var(--muted); border-bottom: 1px solid #2b3a52; display: flex; justify-content: space-between; }
+  .history-list li:first-child { color: var(--accent-2); font-weight: 700; }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 10px; }
+  .row-between { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .count { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>오늘 뭐 먹지? 🍽️</h1>
+    <p>메뉴 룰렛을 돌려 점심 고민을 끝내세요</p>
+  </header>
+
+  <div class="layout">
+    <!-- 좌: 룰렛 -->
+    <div class="card">
+      <div class="chips" id="chips"></div>
+
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="440" height="440"></canvas>
+        <button class="spin-btn" id="spinBtn">돌리기!</button>
+      </div>
+
+      <div class="result" id="result">
+        <span class="label">아직 안 정했어요</span>
+      </div>
+
+      <div class="opt-row" style="justify-content:center; margin-top:14px;">
+        <label class="switch">
+          <input type="checkbox" id="excludeToggle" />
+          <span class="slider"></span>
+        </label>
+        <span>최근</span>
+        <input type="number" id="recentN" min="1" max="20" value="3" />
+        <span>개 제외</span>
+      </div>
+    </div>
+
+    <!-- 우: 관리 -->
+    <div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="row-between">
+          <h2 style="margin:0;">메뉴 관리</h2>
+          <span class="count" id="menuCount"></span>
+        </div>
+        <div class="add-row">
+          <input type="text" id="newMenu" placeholder="메뉴 이름" maxlength="20" />
+          <select id="newCat">
+            <option>한식</option><option>일식</option><option>양식</option><option>중식</option>
+          </select>
+          <button class="btn" id="addBtn">추가</button>
+        </div>
+        <ul class="menu-list" id="menuList"></ul>
+      </div>
+
+      <div class="card">
+        <div class="row-between">
+          <h2 style="margin:0;">최근 먹은 기록</h2>
+          <button class="btn ghost" id="clearHistory" style="padding:4px 10px;">비우기</button>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---------- 상수 ----------
+const CATEGORIES = ["한식", "일식", "양식", "중식"];
+const CAT_COLORS = { "한식": "#ef4444", "일식": "#3b82f6", "양식": "#22c55e", "중식": "#f59e0b" };
+const KEY = { menus: "mealRoulette.menus", history: "mealRoulette.history", settings: "mealRoulette.settings" };
+
+const SAMPLE = [
+  ["김치찌개","한식"],["제육볶음","한식"],["비빔밥","한식"],["순두부찌개","한식"],["냉면","한식"],
+  ["초밥","일식"],["라멘","일식"],["규동","일식"],["돈카츠","일식"],["우동","일식"],
+  ["파스타","양식"],["스테이크","양식"],["리조또","양식"],["햄버거","양식"],["샐러드","양식"],
+  ["짜장면","중식"],["짬뽕","중식"],["탕수육","중식"],["마라탕","중식"],["볶음밥","중식"],
+].map(([name, category]) => ({ name, category }));
+
+// ---------- 상태 ----------
+let menus = load(KEY.menus, SAMPLE);
+let history = load(KEY.history, []);
+let settings = load(KEY.settings, { excludeRecent: false, recentN: 3, categories: [...CATEGORIES] });
+
+let rotation = 0;      // 현재 휠 회전각(라디안)
+let spinning = false;
+let currentCandidates = []; // 현재 휠에 그려진 후보(정지 시 결과 판정에 사용)
+
+// ---------- 저장/로드 ----------
+function load(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : structuredClone(fallback);
+  } catch { return structuredClone(fallback); }
+}
+function save() {
+  localStorage.setItem(KEY.menus, JSON.stringify(menus));
+  localStorage.setItem(KEY.history, JSON.stringify(history));
+  localStorage.setItem(KEY.settings, JSON.stringify(settings));
+}
+
+// ---------- DOM ----------
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const chipsEl = document.getElementById("chips");
+const spinBtn = document.getElementById("spinBtn");
+const resultEl = document.getElementById("result");
+const menuListEl = document.getElementById("menuList");
+const historyListEl = document.getElementById("historyList");
+const menuCountEl = document.getElementById("menuCount");
+const excludeToggle = document.getElementById("excludeToggle");
+const recentNInput = document.getElementById("recentN");
+
+// ---------- 후보 계산 ----------
+function getCandidates() {
+  let list = menus.filter(m => settings.categories.includes(m.category));
+  if (settings.excludeRecent && settings.recentN > 0) {
+    const recent = new Set(history.slice(-settings.recentN));
+    const filtered = list.filter(m => !recent.has(m.name));
+    // 제외 후 후보가 없으면 제외 규칙을 무시하고 전체 후보 사용
+    if (filtered.length > 0) return { list: filtered, excludedAll: false };
+    return { list, excludedAll: true };
+  }
+  return { list, excludedAll: false };
+}
+
+// ---------- 룰렛 그리기 ----------
+function drawWheel() {
+  const { list } = getCandidates();
+  currentCandidates = list;
+  const n = list.length;
+  const cx = canvas.width / 2, cy = canvas.height / 2, r = canvas.width / 2 - 6;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (n === 0) {
+    ctx.fillStyle = "#334155";
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    return;
+  }
+
+  const seg = (Math.PI * 2) / n;
+  for (let i = 0; i < n; i++) {
+    const start = i * seg + rotation;
+    const end = start + seg;
+    // 부채꼴
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.closePath();
+    ctx.fillStyle = shade(CAT_COLORS[list[i].category], i % 2 === 0 ? 0 : -0.12);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(15,23,42,0.6)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 라벨
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + seg / 2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold " + Math.max(11, Math.min(16, 200 / n + 6)) + "px 'Malgun Gothic', sans-serif";
+    ctx.fillText(ellipsis(list[i].name, 7), r - 14, 5);
+    ctx.restore();
+  }
+
+  // 중앙 원 테두리
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.stroke();
+}
+
+function ellipsis(s, max) { return s.length > max ? s.slice(0, max - 1) + "…" : s; }
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  r = Math.round(Math.min(255, Math.max(0, r + 255 * amt)));
+  g = Math.round(Math.min(255, Math.max(0, g + 255 * amt)));
+  b = Math.round(Math.min(255, Math.max(0, b + 255 * amt)));
+  return `rgb(${r},${g},${b})`;
+}
+
+// ---------- 스핀 ----------
+function spin() {
+  if (spinning) return;
+  const { list, excludedAll } = getCandidates();
+  if (list.length === 0) return;
+
+  spinning = true;
+  setControlsEnabled(false);
+  resultEl.innerHTML = '<span class="label">두구두구…</span>';
+
+  const n = list.length;
+  const seg = (Math.PI * 2) / n;
+  const target = Math.floor(Math.random() * n);
+  const extraSpins = 5 + Math.floor(Math.random() * 3); // 5~7바퀴
+  const jitter = (Math.random() - 0.5) * seg * 0.7;     // 세그먼트 내 소량 랜덤
+
+  // 포인터는 상단(-π/2). target 세그먼트 중심이 포인터에 오도록 최종 회전각 계산.
+  const startRotation = rotation;
+  const finalRotation = -Math.PI / 2 - (target * seg + seg / 2)
+                        + Math.PI * 2 * extraSpins + jitter;
+  const delta = finalRotation - startRotation;
+  const duration = 3800;
+  const startTime = performance.now();
+
+  function frame(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    rotation = startRotation + delta * eased;
+    drawWheel();
+    if (t < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      spinning = false;
+      setControlsEnabled(true);
+      finishSpin(list[target], excludedAll);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function finishSpin(picked, excludedAll) {
+  history.push(picked.name);
+  if (history.length > 100) history = history.slice(-100);
+  save();
+  resultEl.innerHTML =
+    '<span class="label">오늘의 메뉴는</span>' +
+    '<span class="menu">' + escapeHtml(picked.name) + '</span>' +
+    (excludedAll ? '<span class="hint">※ 최근 제외를 적용하면 후보가 없어 전체에서 뽑았어요</span>' : '');
+  renderHistory();
+}
+
+// ---------- 렌더 ----------
+function renderChips() {
+  chipsEl.innerHTML = "";
+  const allActive = settings.categories.length === CATEGORIES.length;
+  chipsEl.appendChild(makeChip("전체", allActive, () => {
+    settings.categories = allActive ? [] : [...CATEGORIES];
+    save(); renderChips(); afterFilterChange();
+  }));
+  for (const cat of CATEGORIES) {
+    const active = settings.categories.includes(cat);
+    chipsEl.appendChild(makeChip(cat, active, () => {
+      if (active) settings.categories = settings.categories.filter(c => c !== cat);
+      else settings.categories.push(cat);
+      save(); renderChips(); afterFilterChange();
+    }));
+  }
+}
+function makeChip(label, active, onClick) {
+  const el = document.createElement("div");
+  el.className = "chip" + (active ? " active" : "");
+  el.textContent = label;
+  el.onclick = onClick;
+  return el;
+}
+
+function renderMenuList() {
+  menuListEl.innerHTML = "";
+  menuCountEl.textContent = menus.length + "개";
+  if (menus.length === 0) {
+    menuListEl.innerHTML = '<li class="empty">메뉴가 없어요. 위에서 추가하세요.</li>';
+    return;
+  }
+  menus.forEach((m, idx) => {
+    const li = document.createElement("li");
+    const tag = document.createElement("span");
+    tag.className = "tag"; tag.textContent = m.category;
+    tag.style.background = CAT_COLORS[m.category];
+    const name = document.createElement("span");
+    name.className = "menu-name"; name.textContent = m.name;
+    const del = document.createElement("button");
+    del.className = "del"; del.textContent = "×"; del.title = "삭제";
+    del.onclick = () => { menus.splice(idx, 1); save(); renderMenuList(); afterFilterChange(); };
+    li.append(tag, name, del);
+    menuListEl.appendChild(li);
+  });
+}
+
+function renderHistory() {
+  historyListEl.innerHTML = "";
+  if (history.length === 0) {
+    historyListEl.innerHTML = '<li class="empty">아직 기록이 없어요</li>';
+    return;
+  }
+  // 최신순으로 최대 10개
+  const recent = history.slice(-10).reverse();
+  recent.forEach((name, i) => {
+    const li = document.createElement("li");
+    const left = document.createElement("span");
+    left.textContent = name;
+    const right = document.createElement("span");
+    right.textContent = i === 0 ? "방금" : (i + "번 전");
+    li.append(left, right);
+    historyListEl.appendChild(li);
+  });
+}
+
+// ---------- 상태 변화 처리 ----------
+function afterFilterChange() {
+  drawWheel();
+  updateSpinAvailability();
+}
+function updateSpinAvailability() {
+  const { list } = getCandidates();
+  const ok = list.length > 0 && !spinning;
+  spinBtn.disabled = !ok;
+  if (list.length === 0 && !spinning) {
+    resultEl.innerHTML = '<span class="hint">메뉴를 추가하거나 카테고리 필터를 확인하세요</span>';
+  }
+}
+function setControlsEnabled(enabled) {
+  spinBtn.disabled = !enabled;
+  document.getElementById("addBtn").disabled = !enabled;
+  chipsEl.style.pointerEvents = enabled ? "auto" : "none";
+  if (enabled) updateSpinAvailability();
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+// ---------- 이벤트 ----------
+spinBtn.onclick = spin;
+
+document.getElementById("addBtn").onclick = () => {
+  const input = document.getElementById("newMenu");
+  const name = input.value.trim();
+  const category = document.getElementById("newCat").value;
+  if (!name) return;
+  if (menus.some(m => m.name === name && m.category === category)) {
+    input.value = ""; return; // 중복 무시
+  }
+  menus.push({ name, category });
+  save(); input.value = ""; input.focus();
+  renderMenuList(); afterFilterChange();
+};
+document.getElementById("newMenu").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("addBtn").click();
+});
+
+document.getElementById("clearHistory").onclick = () => {
+  history = []; save(); renderHistory(); afterFilterChange();
+};
+
+excludeToggle.onchange = () => { settings.excludeRecent = excludeToggle.checked; save(); afterFilterChange(); };
+recentNInput.onchange = () => {
+  let v = parseInt(recentNInput.value, 10);
+  if (isNaN(v) || v < 1) v = 1; if (v > 20) v = 20;
+  recentNInput.value = v; settings.recentN = v; save(); afterFilterChange();
+};
+
+// ---------- 초기화 ----------
+function init() {
+  excludeToggle.checked = settings.excludeRecent;
+  recentNInput.value = settings.recentN;
+  renderChips();
+  renderMenuList();
+  renderHistory();
+  drawWheel();
+  updateSpinAvailability();
+}
+init();
+</script>
+</body>
+</html>
