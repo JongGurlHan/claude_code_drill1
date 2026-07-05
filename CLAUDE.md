@@ -68,6 +68,13 @@ These three pieces are meant to work together for reviewing this kind of code:
 - **`agents/code-reviewer.md`** — a read-only subagent that loads the
   `web-mvp-review` skill (via the Skill tool) and reviews the working diff or named
   files. It reports findings; it does not edit.
+- **`hooks/tdd-guard.js`** — a `PreToolUse` hook (`matcher: Edit|Write`) enforcing
+  test-first ordering: it blocks edits to production code (`.html`/`.js`/`.ts`/`.jsx`/
+  `.tsx`/`.css`, excluding `.claude/` and `plugins/`) unless `git status` shows a
+  pending (uncommitted) change to a test file (`tests/**`, `*.test.*`, `*.spec.*`).
+  Fails open if git isn't available. It checks ordering only, not pass/fail — this
+  repo has no test framework yet. The `web-mvp-test` skill can generate `node:test`
+  suites for `index.html`'s inline script to pair with it.
 - **`hooks/pre-commit-check.js` + `settings.json`** — a `PreToolUse` hook
   (`matcher: Bash`, filtered by `if: "Bash(git *)"`) that intercepts `git commit`
   and runs the `lint` / `build` / `test` npm scripts **only if they exist** in

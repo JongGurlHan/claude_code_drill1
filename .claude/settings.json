@@ -13,6 +13,17 @@
             "statusMessage": "Pre-commit: running lint/build/test…"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/tdd-guard.js",
+            "timeout": 30,
+            "statusMessage": "TDD guard: checking for a pending test change…"
+          }
+        ]
       }
     ]
   }
