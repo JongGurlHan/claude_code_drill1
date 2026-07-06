@@ -1,0 +1,7 @@
+{
+  "name": "web-mvp-test",
+  "version": "0.1.0",
+  "description": "Unit-testing toolkit for single-file HTML/CSS/vanilla-JS web MVPs: a node:test authoring skill with a fake-browser harness that loads an inline <script> into Node, plus a TDD red-green guard hook that requires a pending test change before editing production code.",
+  "author": { "name": "gojkhan13" },
+  "keywords": ["testing", "unit-test", "node-test", "tdd", "frontend", "html", "vanilla-js", "hooks"]
+}

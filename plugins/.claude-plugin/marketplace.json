@@ -1,0 +1,20 @@
+{
+  "name": "new-pjt-tools",
+  "owner": { "name": "gojkhan13" },
+  "metadata": {
+    "description": "Local marketplace for new_pjt Claude Code plugins.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "web-mvp-review",
+      "source": "./web-mvp-review",
+      "description": "Review skill + read-only reviewer subagent + pre-commit lint/build/test hook for single-file web MVPs."
+    },
+    {
+      "name": "web-mvp-test",
+      "source": "./web-mvp-test",
+      "description": "node:test authoring skill (fake-browser harness for inline scripts) + TDD red-green guard hook for single-file web MVPs."
+    }
+  ]
+}

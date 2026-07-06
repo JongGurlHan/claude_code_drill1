@@ -1,0 +1,7 @@
+{
+  "name": "web-mvp-review",
+  "version": "0.1.0",
+  "description": "Code-review toolkit for single-file HTML/CSS/vanilla-JS web MVPs: a review skill, a read-only reviewer subagent, and a pre-commit lint/build/test gate hook.",
+  "author": { "name": "gojkhan13" },
+  "keywords": ["code-review", "frontend", "html", "vanilla-js", "hooks", "pre-commit"]
+}

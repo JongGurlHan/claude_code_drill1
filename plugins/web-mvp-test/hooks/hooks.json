@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/tdd-guard.js"],
+            "timeout": 30,
+            "statusMessage": "TDD guard: checking for a pending test change…"
+          }
+        ]
+      }
+    ]
+  }
+}
